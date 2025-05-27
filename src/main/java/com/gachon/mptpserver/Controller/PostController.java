@@ -3,7 +3,6 @@ package com.gachon.mptpserver.Controller;
 
 import com.gachon.mptpserver.DTO.Post;
 import com.gachon.mptpserver.Repository.PostRepository;
-import com.gachon.mptpserver.Service.PostService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,7 +40,7 @@ public class PostController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable int id, @RequestParam String password) {
+    public ResponseEntity<Object> deletePost(@PathVariable int id, @RequestParam String password) {
         return postRepository.findById(id).map(post -> {
             if (String.valueOf(post.getPassword()).equals(password)) {
                 postRepository.deleteById(id);
