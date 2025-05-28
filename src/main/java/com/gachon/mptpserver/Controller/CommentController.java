@@ -23,12 +23,11 @@ public class CommentController {
     // 댓글 작성
     @PostMapping("/add/{postId}")
     public ResponseEntity<Comment> addComment(@PathVariable int postId, @RequestBody Comment comment) {
-        if (!postRepository.existsById(postId)) {
-            return ResponseEntity.notFound().build();
-        }
-        comment.setPostId(postId);
-        Comment saved = commentRepository.save(comment);
-        return ResponseEntity.ok(saved);
+        return postRepository.findById(postId).map(post -> {
+            comment.setPost(post); // postId 대신 Post 객체 설정
+            Comment saved = commentRepository.save(comment);
+            return ResponseEntity.ok(saved);
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // 게시글에 해당하는 댓글 조회
