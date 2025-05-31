@@ -1,13 +1,12 @@
 package com.gachon.mptpserver.DTO;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.List;
-
 
 @Entity
 @Table(name = "Category")
@@ -19,18 +18,19 @@ public class Category {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @Column(name = "icon", length = 255)
-    private String icon;
+    @Column(name = "category", length = 255)
+    private String category;
 
     @Column(name = "value")
     private Integer value;
 
     @Column(name = "date")
-    private LocalDateTime date; // DATETIME 타입에 맞춤
+    private String date; // DATETIME 타입에 맞춤
 
-    // 다대다 관계의 반대편
-    @ManyToMany(mappedBy = "categories")
-    private List<Post> posts;
+    @JsonBackReference
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id")
+    private Post post;
 
     // 기본 생성자
     public Category() {}
@@ -42,15 +42,26 @@ public class Category {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public String getIcon() { return icon; }
-    public void setIcon(String icon) { this.icon = icon; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 
     public Integer getValue() { return value; }
     public void setValue(Integer value) { this.value = value; }
 
-    public LocalDateTime getDate() { return date; }
-    public void setDate(LocalDateTime date) { this.date = date; }
+    public String getDate() { return date; }
+    public void setDate(String date) { this.date = date; }
 
-    public List<Post> getPosts() { return posts; }
-    public void setPosts(List<Post> posts) { this.posts = posts; }
+    public Post getPost() { return post; }
+    public void setPost(Post post) { this.post = post; }
+
+    @Override
+    public String toString() {
+        return "Category{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", category='" + category + '\'' +
+                ", value=" + value +
+                ", date='" + date + '\'' +
+                '}';
+    }
 }

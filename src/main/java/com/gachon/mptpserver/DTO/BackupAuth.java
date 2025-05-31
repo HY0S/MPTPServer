@@ -1,35 +1,34 @@
 package com.gachon.mptpserver.DTO;
 // BackupAuth.java
 import jakarta.persistence.*;
-
-
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "Backup_Auth")
 public class BackupAuth {
     @Id
-    @Column(name = "id", length = 100)
     private String id;
 
     @Column(name = "password", nullable = false)
     private String password;
 
     @Column(name = "created_date")
-    private LocalDateTime createdDate = LocalDateTime.now();
+    private LocalDateTime createdDate;
 
     @Column(name = "last_backup_date")
     private LocalDateTime lastBackupDate;
 
     @Column(name = "backup_count")
-    private int backupCount = 0;
+    private int backupCount;
+
+    @OneToMany(mappedBy = "backedUpBy", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BackupCategory> categories;
 
     // 생성자
-    public BackupAuth() {}
-
-    public BackupAuth(String id, String password) {
-        this.id = id;
-        this.password = password;
+    public BackupAuth() {
+        this.createdDate = LocalDateTime.now();
+        this.backupCount = 0;
     }
 
     // Getters and Setters
@@ -47,5 +46,13 @@ public class BackupAuth {
 
     public int getBackupCount() { return backupCount; }
     public void setBackupCount(int backupCount) { this.backupCount = backupCount; }
+
+    public List<BackupCategory> getCategories() { return categories; }
+    public void setCategories(List<BackupCategory> categories) { this.categories = categories; }
+
+    public void incrementBackupCount() {
+        this.backupCount++;
+        this.lastBackupDate = LocalDateTime.now();
+    }
 }
 

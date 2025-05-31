@@ -1,140 +1,76 @@
 package com.gachon.mptpserver.Controller;
 
-import com.gachon.mptpserver.DTO.BackupAuth;
-import com.gachon.mptpserver.DTO.BackupCategory;
 import com.gachon.mptpserver.DTO.Category;
-import com.gachon.mptpserver.Repository.BackupAuthRepository;
-import com.gachon.mptpserver.Repository.BackupCategoryRepository;
-
+import com.gachon.mptpserver.Service.BackupService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
+@RequestMapping("/backup")
 public class BackupController {
+    private static final Logger logger = LoggerFactory.getLogger(BackupController.class);
+    private final BackupService backupService;
 
-    private final BackupAuthRepository backupAuthRepository;
-    private final BackupCategoryRepository backupCategoryRepository;
-
-    public BackupController(BackupAuthRepository backupAuthRepository,
-                            BackupCategoryRepository backupCategoryRepository) {
-        this.backupAuthRepository = backupAuthRepository;
-        this.backupCategoryRepository = backupCategoryRepository;
+    public BackupController(BackupService backupService) {
+        this.backupService = backupService;
     }
 
-    // 백업 - 카테고리 리스트 저장
-    @PostMapping("/backup")
-    @Transactional
-    public ResponseEntity<Void> createBackup(@RequestParam String id,
-                                             @RequestParam String password,
-                                             @RequestBody List<Category> categoryList) {
+    @PostMapping("/save")
+    public ResponseEntity<Map<String, String>> backup(
+            @RequestParam String id,
+            @RequestParam String password,
+            @RequestBody List<Category> categories) {
+        logger.info("백업 요청: id={}, categories={}", id, categories.size());
+        Map<String, String> response = new HashMap<>();
 
         try {
-            // 사용자 조회 또는 생성
-            BackupAuth auth = backupAuthRepository.findById(id).orElse(null);
-            if (auth == null) {
-                // 새 사용자 생성
-                auth = new BackupAuth(id, password);
-                backupAuthRepository.save(auth);
+            // 기존 계정이 있는 경우 비밀번호 검증
+            if (backupService.findById(id) != null && !backupService.validatePassword(id, password)) {
+                logger.warn("백업 실패: 잘못된 비밀번호 - id={}", id);
+                response.put("message", "Invalid password");
+                return ResponseEntity.status(409).body(response);
             }
 
-            // 기존 백업 데이터 삭제 (해당 사용자의)
-            backupCategoryRepository.deleteByBackedUpBy(id);
-
-            // 새로운 백업 데이터 저장
-            List<BackupCategory> backupCategories = categoryList.stream()
-                    .map(category -> new BackupCategory(category, id))
-                    .collect(Collectors.toList());
-
-            backupCategoryRepository.saveAll(backupCategories);
-
-            // 백업 정보 업데이트
-            auth.setLastBackupDate(LocalDateTime.now());
-            auth.setBackupCount(auth.getBackupCount() + 1);
-            backupAuthRepository.save(auth);
-
-            return ResponseEntity.ok().build();
+            backupService.backup(id, password, categories);
+            logger.info("백업 성공: id={}, categories={}", id, categories.size());
+            response.put("message", "Backup successful");
+            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).build(); // 서버 오류
+            logger.error("백업 실패: id={}, error={}", id, e.getMessage());
+            response.put("message", "Backup failed: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
         }
     }
 
-    // 복원 - 백업된 카테고리 리스트 반환
-    @GetMapping("/Restore")
-    public ResponseEntity<List<Category>> getRestoreData(@RequestParam String id,
-                                                         @RequestParam String password) {
+    @GetMapping("/restore")
+    public ResponseEntity<?> restore(
+            @RequestParam String id,
+            @RequestParam String password) {
+        logger.info("복원 요청: id={}", id);
+        Map<String, Object> response = new HashMap<>();
 
         try {
-            // 사용자 조회
-            BackupAuth auth = backupAuthRepository.findById(id).orElse(null);
-            if (auth == null) {
-                // 사용자가 없으면 백업 데이터도 없음
-                return ResponseEntity.notFound().build();
+            if (!backupService.validatePassword(id, password)) {
+                logger.warn("복원 실패: 잘못된 인증 정보 - id={}", id);
+                response.put("message", "Invalid credentials");
+                return ResponseEntity.status(401).body(response);
             }
 
-            // 해당 사용자의 백업 데이터 조회
-            List<BackupCategory> backupCategories = backupCategoryRepository.findByBackedUpByOrderByBackupDateDesc(id);
-
-            // BackupCategory를 Category로 변환
-            List<Category> categories = backupCategories.stream()
-                    .map(BackupCategory::toCategory)
-                    .collect(Collectors.toList());
-
+            List<Category> categories = backupService.restore(id, password);
+            logger.info("복원 성공: id={}, categories={}", id, categories.size());
             return ResponseEntity.ok(categories);
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).build(); // 서버 오류
+            logger.error("복원 실패: id={}, error={}", id, e.getMessage());
+            response.put("message", "Restore failed: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
         }
-    }
-
-    // 백업 상태 확인 (추가 기능)
-    @GetMapping("/backup/status")
-    public ResponseEntity<BackupStatus> getBackupStatus(@RequestParam String id,
-                                                        @RequestParam String password) {
-
-        try {
-            // 사용자 조회 또는 생성
-            BackupAuth auth = backupAuthRepository.findById(id).orElse(null);
-            if (auth == null) {
-                // 새 사용자 생성
-                auth = new BackupAuth(id, password);
-                backupAuthRepository.save(auth);
-            }
-
-            int categoryCount = backupCategoryRepository.countByBackedUpBy(id);
-            BackupStatus status = new BackupStatus(
-                    auth.getLastBackupDate(),
-                    auth.getBackupCount(),
-                    categoryCount
-            );
-
-            return ResponseEntity.ok(status);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).build(); // 서버 오류
-        }
-    }
-
-    // 백업 상태 응답 클래스
-    public static class BackupStatus {
-        private LocalDateTime lastBackupDate;
-        private int totalBackupCount;
-        private int categoryCount;
-
-        public BackupStatus(LocalDateTime lastBackupDate, int totalBackupCount, int categoryCount) {
-            this.lastBackupDate = lastBackupDate;
-            this.totalBackupCount = totalBackupCount;
-            this.categoryCount = categoryCount;
-        }
-
-        // Getters
-        public LocalDateTime getLastBackupDate() { return lastBackupDate; }
-        public int getTotalBackupCount() { return totalBackupCount; }
-        public int getCategoryCount() { return categoryCount; }
     }
 }

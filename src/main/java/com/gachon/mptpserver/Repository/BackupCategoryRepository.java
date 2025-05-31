@@ -1,6 +1,6 @@
 package com.gachon.mptpserver.Repository;
 
-
+import com.gachon.mptpserver.DTO.BackupAuth;
 import com.gachon.mptpserver.DTO.BackupCategory;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,10 +16,10 @@ import java.util.List;
 public interface BackupCategoryRepository extends JpaRepository<BackupCategory, Integer> {
 
     // 특정 사용자의 백업 카테고리 조회 (최신순)
-    List<BackupCategory> findByBackedUpByOrderByBackupDateDesc(String backedUpBy);
+    List<BackupCategory> findByBackedUpByOrderByBackupDateDesc(BackupAuth backedUpBy);
 
     // 특정 사용자의 백업 카테고리 개수
-    int countByBackedUpBy(String backedUpBy);
+    int countByBackedUpBy(BackupAuth backedUpBy);
 
     // 특정 사용자의 백업 데이터 삭제
     @Modifying
@@ -32,4 +32,7 @@ public interface BackupCategoryRepository extends JpaRepository<BackupCategory, 
     @Transactional
     @Query("DELETE FROM BackupCategory bc WHERE bc.backupDate < :date")
     void deleteByBackupDateBefore(@Param("date") java.time.LocalDateTime date);
+
+    List<BackupCategory> findAllByBackedUpBy(BackupAuth backedUpBy);
+    void deleteAllByBackedUpBy(BackupAuth backedUpBy);
 }

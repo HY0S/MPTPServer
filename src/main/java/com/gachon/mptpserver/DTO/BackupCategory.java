@@ -14,38 +14,42 @@ public class BackupCategory {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @Column(name = "icon", length = 255)
-    private String icon;
+    @Column(name = "category", length = 255)
+    private String category;
 
     @Column(name = "value")
     private Integer value;
 
     @Column(name = "date")
-    private LocalDateTime date;
+    private String date;
 
-    @Column(name = "backed_up_by", nullable = false, length = 100)
-    private String backedUpBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "backed_up_by", nullable = false)
+    private BackupAuth backedUpBy;
 
     @Column(name = "backup_date")
-    private LocalDateTime backupDate = LocalDateTime.now();
+    private LocalDateTime backupDate;
 
     // 생성자
-    public BackupCategory() {}
-
-    // Category 객체로부터 BackupCategory 생성
-    public BackupCategory(Category category, String backedUpBy) {
-        this.name = category.getName();
-        this.icon = category.getIcon();
-        this.value = category.getValue();
-        this.date = category.getDate();
-        this.backedUpBy = backedUpBy;
+    public BackupCategory() {
+        this.backupDate = LocalDateTime.now();
     }
 
-    // BackupCategory를 Category로 변환
+    // Category로부터 BackupCategory 생성을 위한 정적 팩토리 메서드
+    public static BackupCategory fromCategory(Category category) {
+        BackupCategory backupCategory = new BackupCategory();
+        backupCategory.setName(category.getName());
+        backupCategory.setCategory(category.getCategory());
+        backupCategory.setValue(category.getValue());
+        backupCategory.setDate(category.getDate());
+        return backupCategory;
+    }
+
+    // BackupCategory로부터 Category 생성을 위한 메서드
     public Category toCategory() {
         Category category = new Category();
         category.setName(this.name);
-        category.setIcon(this.icon);
+        category.setCategory(this.category);
         category.setValue(this.value);
         category.setDate(this.date);
         return category;
@@ -58,17 +62,17 @@ public class BackupCategory {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public String getIcon() { return icon; }
-    public void setIcon(String icon) { this.icon = icon; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 
     public Integer getValue() { return value; }
     public void setValue(Integer value) { this.value = value; }
 
-    public LocalDateTime getDate() { return date; }
-    public void setDate(LocalDateTime date) { this.date = date; }
+    public String getDate() { return date; }
+    public void setDate(String date) { this.date = date; }
 
-    public String getBackedUpBy() { return backedUpBy; }
-    public void setBackedUpBy(String backedUpBy) { this.backedUpBy = backedUpBy; }
+    public BackupAuth getBackedUpBy() { return backedUpBy; }
+    public void setBackedUpBy(BackupAuth backedUpBy) { this.backedUpBy = backedUpBy; }
 
     public LocalDateTime getBackupDate() { return backupDate; }
     public void setBackupDate(LocalDateTime backupDate) { this.backupDate = backupDate; }

@@ -1,5 +1,6 @@
 package com.gachon.mptpserver.DTO;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -16,6 +17,7 @@ public class Comment {
     private int id;
 
     // 외래키 관계 - Post 객체 참조 (권장)
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
@@ -27,7 +29,7 @@ public class Comment {
     private String password;
 
     @Column(name = "date")
-    private LocalDateTime date;
+    private String date;
 
     // 기본 생성자 (JPA 필수)
     public Comment() {}
@@ -50,6 +52,15 @@ public class Comment {
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
 
-    public LocalDateTime getDate() { return date; }
-    public void setDate(LocalDateTime date) { this.date = date; }
+    public String getDate() { return date; }
+    public void setDate(String date) { this.date = date; }
+
+    @Override
+    public String toString() {
+        return "Comment{" +
+                "id=" + id +
+                ", content='" + content + '\'' +
+                ", date='" + date + '\'' +
+                '}';
+    }
 }
